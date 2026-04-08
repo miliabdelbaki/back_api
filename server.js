@@ -84,6 +84,7 @@ async function startServer() {
       dbName: 'ServerRoom', // Base de données changée à ServerRoom
     });
 
+
     console.log('✅ MongoDB connecté:', REQUESTED_MONGO_URI ? 'URI fournie' : 'fallback local');
     await startServer();
   } catch (err) {
@@ -109,6 +110,9 @@ async function startServer() {
     setTimeout(() => process.exit(1), 5000);
   }
 })();
+app.get("/test", (req, res) => {
+  res.send("Server works ✅");
+});
 
 // Gestion des erreurs non attrapées
 process.on('unhandledRejection', (reason, promise) => {
