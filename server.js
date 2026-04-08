@@ -111,6 +111,9 @@ async function startServer() {
   }
 })();
 app.get("/test", (req, res) => {
+  res.send("API works ✅");
+});
+app.get("/test", (req, res) => {
   res.send("Server works ✅");
 });
 
