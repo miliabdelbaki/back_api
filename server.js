@@ -110,12 +110,7 @@ async function startServer() {
     setTimeout(() => process.exit(1), 5000);
   }
 })();
-app.get("/test", (req, res) => {
-  res.send("API works ✅");
-});
-app.get("/test", (req, res) => {
-  res.send("Server works ✅");
-});
+
 
 // Gestion des erreurs non attrapées
 process.on('unhandledRejection', (reason, promise) => {
