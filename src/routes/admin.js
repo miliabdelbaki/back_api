@@ -16,6 +16,36 @@ router.get('/users', requireAuth, requireAdmin, async (req, res) => {
     res.status(500).json({ code: 'server_error', message: 'Erreur serveur' });
   }
 });
+// Dans la route qui assigne un technicien à une note de maintenance
+// (route admin existante ou à créer)
+
+router.put('/maintenance-notes/:noteId/assign', requireAuth, requireAdmin, 
+  async (req, res) => {
+    const { technicianId } = req.body;
+    
+    const note = await MaintenanceNote.findByIdAndUpdate(
+      req.params.noteId,
+      { assignedTechnician: technicianId, status: 'EN_ATTENTE' },
+      { new: true }
+    ).populate('room', 'name');
+    
+    // Récupérer le token FCM du technicien
+    const technician = await User.findById(technicianId).lean();
+    
+    if (technician?.fcmToken) {
+      await sendPushNotification(technician.fcmToken, {
+        title: "🔧 Nouvelle intervention assignée",
+        body: `Panne détectée dans la salle ${note.room?.name}. Priorité : ${note.priority}`,
+        data: { 
+          type: 'new_intervention',
+          noteId: note._id.toString() 
+        }
+      });
+    }
+    
+    res.json(note);
+  }
+);
 
 // Update user role (admin)
 router.put('/users/:id/role', requireAuth, requireAdmin, async (req, res) => {
@@ -93,16 +123,17 @@ router.get('/stats', requireAuth, requireAdmin, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(5)
       .populate('room', 'name')
-      .populate('technician', 'displayName')
+      .populate('employee', 'displayName')
       .lean();
 
     const formattedActivity = latestVerifications.map((v) => ({
       id: v._id,
       room: v.room?.name || 'Salle inconnue',
-      technician: v.technician?.displayName || 'Inconnu',
+      employee: v.employee?.displayName || 'Inconnu',
+      technician: v.employee?.displayName || 'Inconnu', // keep for backwards compatibility if frontend needs it
       status: v.status || 'inconnu',
       createdAt: v.createdAt,
-      text: `Salle ${v.room?.name || '…'} — Vérification ${v.status || 'inconnue'} par ${v.technician?.displayName || 'technicien'}`,
+      text: `Salle ${v.room?.name || '…'} — Vérification ${v.status || 'inconnue'} par ${v.employee?.displayName || 'employé'}`,
       // ✅ AJOUT: Inclure les items avec les images et notes
       items: Array.isArray(v.items) ? v.items.map(item => {
         // Ensure photo has proper data URL format

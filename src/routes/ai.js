@@ -3,6 +3,7 @@ import express from 'express';
 import Verification from '../models/Verification.js';
 import Room from '../models/Room.js';
 import MaintenanceNote from '../models/MaintenanceNote.js';
+import User from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -428,15 +429,22 @@ function normalizeMaintenancePriority(p) {
 
 router.post('/maintenance-note', requireAuth, async (req, res) => {
   try {
-    const { roomId, verificationId, note, priority, aiState, aiRisk } = req.body;
+    const { roomId, verificationId, note, priority, aiState, aiRisk, assignedTechnicianId } = req.body;
     if (!roomId || !note) return res.status(400).json({ message: 'roomId et note requis' });
 
     const adminId = (req.user.uid || req.user._id || req.user.id)?.toString();
     if (!adminId) return res.status(401).json({ message: 'Utilisateur non identifié' });
+    if (req.user.role !== 'admin') return res.status(403).json({ message: 'Action réservée à l admin' });
 
     const pri = normalizeMaintenancePriority(priority);
     const riskNum = typeof aiRisk === 'number' ? aiRisk : aiRisk != null ? Number(aiRisk) : null;
     const riskFinal = Number.isFinite(riskNum) ? riskNum : null;
+    let assignedTechnician = null;
+    if (assignedTechnicianId) {
+      const technician = await User.findOne({ _id: assignedTechnicianId, role: 'technicien' }).lean();
+      if (!technician) return res.status(400).json({ message: 'Technicien invalide' });
+      assignedTechnician = technician._id;
+    }
 
     if (verificationId) {
       const verif = await Verification.findById(verificationId).lean();
@@ -456,11 +464,15 @@ router.post('/maintenance-note', requireAuth, async (req, res) => {
             aiState: aiState || null,
             aiRisk: riskFinal,
             verification: verificationId,
+            assignedTechnician,
+            status: 'EN_ATTENTE',
+            resolvedAt: null,
           },
         },
         { upsert: true, new: true, runValidators: true }
       );
       await doc.populate('admin', 'displayName email');
+      await doc.populate('assignedTechnician', 'displayName email');
       return res.status(201).json(doc);
     }
 
@@ -471,8 +483,11 @@ router.post('/maintenance-note', requireAuth, async (req, res) => {
       priority: pri,
       aiState: aiState || null,
       aiRisk: riskFinal,
+      assignedTechnician,
+      status: 'EN_ATTENTE',
     });
     await doc.populate('admin', 'displayName email');
+    await doc.populate('assignedTechnician', 'displayName email');
     res.status(201).json(doc);
   } catch (e) {
     console.error(e);
@@ -487,12 +502,56 @@ router.get('/maintenance-notes/:roomId', requireAuth, async (req, res) => {
   try {
     const notes = await MaintenanceNote.find({ room: req.params.roomId })
       .populate('admin', 'displayName email')
+      .populate('assignedTechnician', 'displayName email')
       .populate('verification', 'status submittedAt createdAt')
       .sort({ createdAt: -1 })
       .lean();
     res.json(notes);
   } catch (e) {
     res.status(500).json({ message: 'Erreur recuperation' });
+  }
+});
+
+router.get('/maintenance-notifications/me', requireAuth, async (req, res) => {
+  try {
+    const userId = (req.user.uid || req.user._id || req.user.id)?.toString();
+    if (!userId) return res.status(401).json({ message: 'Utilisateur non identifié' });
+    const notes = await MaintenanceNote.find({ assignedTechnician: userId })
+      .populate('room', 'name')
+      .populate('admin', 'displayName email')
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(notes);
+  } catch (e) {
+    res.status(500).json({ message: 'Erreur recuperation notifications' });
+  }
+});
+
+router.patch('/maintenance-note/:noteId/status', requireAuth, async (req, res) => {
+  try {
+    const userId = (req.user.uid || req.user._id || req.user.id)?.toString();
+    if (!userId) return res.status(401).json({ message: 'Utilisateur non identifié' });
+    const { noteId } = req.params;
+    const { status, technicianFeedback } = req.body || {};
+    const allowed = ['EN_ATTENTE', 'EN_COURS', 'TERMINEE'];
+    if (!allowed.includes(status)) return res.status(400).json({ message: 'Statut invalide' });
+
+    const note = await MaintenanceNote.findById(noteId);
+    if (!note) return res.status(404).json({ message: 'Décision introuvable' });
+    if (!note.assignedTechnician || note.assignedTechnician.toString() !== userId) {
+      return res.status(403).json({ message: 'Action réservée au technicien assigné' });
+    }
+
+    note.status = status;
+    if (typeof technicianFeedback === 'string') note.technicianFeedback = technicianFeedback.trim();
+    note.resolvedAt = status === 'TERMINEE' ? new Date() : null;
+    await note.save();
+    await note.populate('room', 'name');
+    await note.populate('admin', 'displayName email');
+    await note.populate('assignedTechnician', 'displayName email');
+    res.json(note);
+  } catch (e) {
+    res.status(500).json({ message: 'Erreur mise à jour statut' });
   }
 });
 

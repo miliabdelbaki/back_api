@@ -9,8 +9,30 @@ const router = express.Router();
 // List rooms
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const rooms = await Room.find().populate('checklist').populate('technicians', 'email displayName role').lean();
-    res.json(rooms);
+    const userId = req.user.uid;
+
+    const rooms = await Room.find({})
+      .populate('checklist')
+      .lean();
+
+    // 🔥 récupérer les vérifications de l'utilisateur
+    const verifications = await Verification.find({
+      employee: userId,
+    }).lean();
+
+    const roomsWithStatus = rooms.map(room => {
+      const v = verifications.find(
+        verif => verif.room.toString() === room._id.toString()
+      );
+
+      return {
+        ...room,
+        status: v ? v.status : null, // 🔥 important
+      };
+    });
+
+    res.json(roomsWithStatus);
+
   } catch (e) {
     console.error('rooms:list', e);
     res.status(500).json({ code: 'server_error', message: 'Erreur serveur' });
@@ -31,7 +53,7 @@ router.get('/:id', requireAuth, async (req, res) => {
     const history = await Verification.find({ room: room._id })
       .sort({ verifiedAt: -1 })
       .limit(5)
-      .populate('technician', 'email displayName')
+      .populate('employee', 'email displayName')
       .lean();
 
     res.json({ ...room, history });
@@ -56,7 +78,7 @@ router.post('/:id/verify', requireAuth, async (req, res) => {
     const verification = await Verification.create({
       room: roomId,
       checklist: room.checklist,
-      technician: req.user.uid,
+      employee: req.user.uid,
       items: items.map(i => ({
         label: i.label,
         checked: i.checked,
@@ -78,7 +100,7 @@ router.get('/:id/history', requireAuth, requireAdmin, async (req, res) => {
   try {
     const history = await Verification.find({ room: req.params.id })
       .sort({ verifiedAt: -1 })
-      .populate('technician', 'email displayName')
+      .populate('employee', 'email displayName')
       .populate('checklist', 'name')
       .lean();
     res.json(history);

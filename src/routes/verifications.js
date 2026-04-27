@@ -8,15 +8,22 @@ const router = express.Router();
 
 // ================= LIST VERIFICATIONS =================
 // GET /api/verifications/
+// Dans GET /api/verifications/
 router.get("/", requireAuth, async (req, res) => {
   try {
-    const list = await Verification.find()
+    // NOUVEAU : les employés ne voient que leurs propres vérifications
+    const filter = req.user?.role === 'employe' 
+      ? { employee: req.user.uid }
+      : {};
+    
+    const list = await Verification.find(filter)
       .sort({ createdAt: -1 })
       .limit(200)
-      .populate("technician", "email displayName")
+      .populate("employee", "email displayName")
       .populate("validatedBy", "email displayName")
       .populate("checklist")
       .lean();
+      
     res.json(list);
   } catch (e) {
     console.error("verification:list", e);
@@ -24,13 +31,14 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
+
 // ================= HISTORY =================
 // GET /api/verifications/history
 router.get("/history", requireAuth, async (req, res) => {
   try {
     const userId = (req.user?.uid || req.user?.id || req.user?._id)?.toString();
 
-    const verifications = await Verification.find({ technician: userId })
+    const verifications = await Verification.find({ employee: userId })
       .sort({ createdAt: -1 })
       .populate("room", "name description")
       .populate("checklist", "name")
@@ -99,7 +107,7 @@ router.post("/rooms/:roomId/start-verification", requireAuth, async (req, res) =
     const verification = await Verification.create({
       room: roomId,
       checklist: room.checklist._id,
-      technician: userId,
+      employee: userId,
       items: verificationItems,
       status: "draft"
     });
@@ -121,7 +129,7 @@ router.get("/rooms/:roomId/verifications", requireAuth, async (req, res) => {
   try {
     const { roomId } = req.params;
     const verifications = await Verification.find({ room: roomId })
-      .populate("technician", "email displayName")
+      .populate("employee", "email displayName")
       .populate("validatedBy", "email displayName")
       .populate("checklist")
       .sort({ createdAt: -1 })
@@ -151,7 +159,7 @@ router.put("/:verificationId/items/:itemIndex", requireAuth, async (req, res) =>
       return res.status(404).json({ code: "not_found" });
     }
 
-    if (verification.technician.toString() !== userId) {
+    if (verification.employee.toString() !== userId) {
       console.log(">>> UPDATE ITEM: accès interdit");
       return res.status(403).json({ code: "forbidden" });
     }
@@ -208,7 +216,7 @@ router.put("/:verificationId/submit", requireAuth, async (req, res) => {
       return res.status(404).json({ code: "not_found" });
     }
 
-    if (verification.technician.toString() !== userId) {
+    if (verification.employee.toString() !== userId) {
       return res.status(403).json({ code: "forbidden" });
     }
 

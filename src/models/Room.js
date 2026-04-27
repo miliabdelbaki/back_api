@@ -2,10 +2,11 @@ import mongoose from 'mongoose';
 
 const roomSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
+    name:        { type: String, required: true },
     description: { type: String },
-    checklist: { type: mongoose.Schema.Types.ObjectId, ref: 'Checklist' },
+    checklist:   { type: mongoose.Schema.Types.ObjectId, ref: 'Checklist' },
     technicians: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    employees:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // ← NOUVEAU
   },
   { timestamps: true }
 );

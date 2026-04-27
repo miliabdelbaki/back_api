@@ -10,6 +10,12 @@ const maintenanceNoteSchema = new mongoose.Schema(
     note:          { type: String, required: true },
     aiState:       { type: String },   // snapshot état au moment de la décision
     aiRisk:        { type: Number },   // snapshot risque %
+    
+    // Intervention tracking for technicians
+    status:             { type: String, enum: ['EN_ATTENTE', 'EN_COURS', 'TERMINEE'], default: 'EN_ATTENTE' },
+    assignedTechnician: { type: mongoose.Schema.Types.ObjectId, ref: 'User', sparse: true },
+    technicianFeedback: { type: String },
+    resolvedAt:         { type: Date },
   },
   { timestamps: true }
 );

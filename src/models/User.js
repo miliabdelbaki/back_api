@@ -1,17 +1,20 @@
-
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema(
   {
-    email: { type: String, unique: true, required: true, lowercase: true, trim: true },
+    email: { 
+      type: String, unique: true, required: true, 
+      lowercase: true, trim: true 
+    },
     passwordHash: { type: String, required: true },
-    role: { type: String, default: 'technicien', enum: ['technicien', 'admin'] },
+    role: { 
+      type: String, 
+      default: 'employe',   // ← CHANGÉ : employe est le rôle par défaut
+      enum: ['employe', 'technicien', 'admin'] 
+    },
     displayName: { type: String },
-
-    // Admin approval required for technicians
-    approved: { type: Boolean, default: true },
-
-    // Reset mot de passe
+    approved: { type: Boolean, default: false }, // ← CHANGÉ : false par défaut
+    fcmToken: { type: String, sparse: true },    // ← NOUVEAU : notifications push
     resetToken: { type: String, sparse: true },
     resetExpires: { type: Date }
   },

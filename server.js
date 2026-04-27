@@ -9,8 +9,8 @@ import roomsRoutes from './src/routes/rooms.js';
 import adminRoutes from './src/routes/admin.js';
 import verificationsRoutes from './src/routes/verifications.js';
 import aiRoutes from './src/routes/ai.js';
+import technicianRouter from './src/routes/technician.js';
 import { apiLimiter } from './src/middleware/limiter.js';
-
 dotenv.config();
 
 // Ajoutez ces lignes pour débugger
@@ -51,6 +51,7 @@ app.use('/api/rooms', roomsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/verifications', verificationsRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/technician', technicianRouter);
 
 app.get('/health', (_, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
