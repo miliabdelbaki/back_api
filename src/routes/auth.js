@@ -78,7 +78,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Identifiants incorrects' });
     }
 
-    // 🔥 Vérification admin
+    //  Vérification admin
     if (!user.approved) {
       return res.status(403).json({
         message: 'Compte en attente de validation par admin',
@@ -107,58 +107,15 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// ================= PROFILE =================
-router.get('/profile', requireAuth, async (req, res) => {
+
+
+
+router.get('/me', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user.uid).lean();
-
-    if (!user) {
-      return res.status(404).json({ message: 'Utilisateur introuvable' });
-    }
-
-    return res.json({
-      user: {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-        displayName: user.displayName,
-      },
-    });
-
+    if (!user) return res.status(404).json({ message: 'Introuvable' });
+    return res.json({ id: user._id, email: user.email, role: user.role, displayName: user.displayName });
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ message: 'Erreur serveur' });
-  }
-});
-
-// ================= RESET PASSWORD =================
-router.post('/forgot', async (req, res) => {
-  try {
-    const { email } = req.body || {};
-
-    if (!isEmail(email)) {
-      return res.json({ message: 'Si le compte existe, email envoyé' });
-    }
-
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.json({ message: 'Si le compte existe, email envoyé' });
-    }
-
-    const token = crypto.randomBytes(24).toString('hex');
-
-    user.resetToken = token;
-    user.resetExpires = new Date(Date.now() + 30 * 60 * 1000);
-
-    await user.save();
-
-    await sendResetEmail(email, token);
-
-    return res.json({ message: 'Email envoyé' });
-
-  } catch (e) {
-    console.error(e);
     return res.status(500).json({ message: 'Erreur serveur' });
   }
 });

@@ -6,7 +6,7 @@ const roomSchema = new mongoose.Schema(
     description: { type: String },
     checklist:   { type: mongoose.Schema.Types.ObjectId, ref: 'Checklist' },
     technicians: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    employees:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // ← NOUVEAU
+    employees:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], 
   },
   { timestamps: true }
 );

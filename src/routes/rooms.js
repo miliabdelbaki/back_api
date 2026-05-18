@@ -12,10 +12,10 @@ router.get('/', requireAuth, async (req, res) => {
     const userId = req.user.uid;
 
     const rooms = await Room.find({})
-      .populate('checklist')
+      .populate('checklist') 
       .lean();
 
-    // 🔥 récupérer les vérifications de l'utilisateur
+    //  récupérer les vérifications de l'utilisateur
     const verifications = await Verification.find({
       employee: userId,
     }).lean();
@@ -27,10 +27,10 @@ router.get('/', requireAuth, async (req, res) => {
 
       return {
         ...room,
-        status: v ? v.status : null, // 🔥 important
+        status: v ? v.status : null, //  important
       };
     });
-
+  
     res.json(roomsWithStatus);
 
   } catch (e) {
@@ -63,7 +63,7 @@ router.get('/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Verify room (Technician)
+// Verify room (employee only)
 router.post('/:id/verify', requireAuth, async (req, res) => {
   try {
     const { items = [] } = req.body || {};

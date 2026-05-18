@@ -3,7 +3,7 @@ import MaintenanceNote from '../models/MaintenanceNote.js';
 import Verification from '../models/Verification.js';
 import User from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
-import { sendPushNotification } from '../utils/notifications.js';
+
 
 const router = express.Router();
 
@@ -114,15 +114,7 @@ router.put('/interventions/:noteId/status', requireAuth, requireTechnician, asyn
     
     await note.save();
     
-    // Notifier l'admin que le statut a changé
-    const admin = await User.findById(note.admin).lean();
-    if (admin?.fcmToken) {
-      await sendPushNotification(admin.fcmToken, {
-        title: `Intervention ${status === 'TERMINEE' ? 'terminée ✅' : 'en cours 🔧'}`,
-        body: `La panne dans la salle ${note.room?.name || ''} est maintenant : ${status}`,
-        data: { type: 'intervention_update', noteId: note._id.toString() }
-      });
-    }
+
     
     res.json(note.toObject());
   } catch (e) {

@@ -10,7 +10,7 @@ import adminRoutes from './src/routes/admin.js';
 import verificationsRoutes from './src/routes/verifications.js';
 import aiRoutes from './src/routes/ai.js';
 import technicianRouter from './src/routes/technician.js';
-import { apiLimiter } from './src/middleware/limiter.js';
+
 dotenv.config();
 
 // Ajoutez ces lignes pour débugger
@@ -23,7 +23,7 @@ const app = express();
 // CORS: prefer explicit frontend origin(s); default to localhost:3000 for dev
 app.use(cors({
   origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json({ limit: '50mb' }));
@@ -41,8 +41,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Limiter (optionnel mais recommandé)
-app.use('/api/auth', apiLimiter);
 
 // Routes (montées sous le préfixe /api pour compatibilité avec le frontend)
 app.use('/api/auth', authRoutes);

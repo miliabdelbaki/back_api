@@ -14,7 +14,6 @@ const userSchema = new mongoose.Schema(
     },
     displayName: { type: String },
     approved: { type: Boolean, default: false }, // ← CHANGÉ : false par défaut
-    fcmToken: { type: String, sparse: true },    // ← NOUVEAU : notifications push
     resetToken: { type: String, sparse: true },
     resetExpires: { type: Date }
   },

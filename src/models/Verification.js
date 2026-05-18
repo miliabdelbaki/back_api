@@ -1,17 +1,17 @@
 
 import mongoose from 'mongoose';
 
-// ✅ FIX: Accepter tous les champs envoyés par le backend
+
 const verificationItemSchema = new mongoose.Schema({
-  itemId: { type: mongoose.Schema.Types.ObjectId },  // ← AJOUTÉ
+  itemId: { type: mongoose.Schema.Types.ObjectId },  
   label: { type: String, required: true },
-  required: { type: Boolean, default: false },        // ← AJOUTÉ
-  order: { type: Number, default: 0 },               // ← AJOUTÉ
+  required: { type: Boolean, default: false },       
+  order: { type: Number, default: 0 },               
   completed: { type: Boolean, default: false },
   completedAt: { type: Date },
   photo: { type: String },
-  notes: { type: String },    // ← "notes" pas "comment"
-  comment: { type: String },  // ← garder les deux pour compatibilité
+  notes: { type: String },   
+  comment: { type: String }, 
 });
 
 const verificationSchema = new mongoose.Schema(
